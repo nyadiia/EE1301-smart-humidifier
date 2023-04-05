@@ -7,11 +7,12 @@
 
 #include "PietteTech_DHT.h"
 
-// doing preprocessor for constants like this saves just a little bit of memory
-// because it substitutes the values in at compile time instead of referencing a variable
-// in memory
-#define SENSOR_PIN D1
+ // doing preprocessor for constants like this saves just a little bit of memory
+ // because it substitutes the values in at compile time instead of referencing a variable
+ // in memory
+#define SENSOR_PIN D2
 #define HEARTBEAT_LED D7
+#define SERVO_PIN D1
 #define DHT_TYPE DHT11
 #define POLL_RATE 500
 
@@ -20,14 +21,17 @@ double humidity;
 unsigned long int poll_time;
 bool LED_state = FALSE;
 
+Servo output_servo;
 PietteTech_DHT DHT(SENSOR_PIN, DHT_TYPE);
 
 // setup() runs once, when the device is first turned on.
 void setup() {
   // Put initialization like pinMode and begin functions here.
   pinMode(HEARTBEAT_LED, OUTPUT);
+  // pinMode(SERVO_PIN, OUTPUT);
   Serial.begin(9600);
   DHT.begin();
+  output_servo.attach(SERVO_PIN);
   Particle.variable("cV_temp", temp_c);
   Particle.variable("cV_humidity", humidity);
   poll_time = millis() + POLL_RATE;
@@ -37,7 +41,8 @@ void setup() {
 void loop() {
   unsigned long int current_time = millis();
   //? this code is from the example and is helpful for error checking
-  int result = DHT.acquireAndWait(1000); // wait up to 1 sec (default indefinitely)
+  int result = DHT.acquireAndWait(1500); // wait up to 1.5 sec
+  delay(POLL_RATE);
 
   switch (result) {
   case DHTLIB_OK:
@@ -70,12 +75,17 @@ void loop() {
   }
 
   if (current_time > poll_time) {
-    LED_state = !LED_state; 
+    if (result == DHTLIB_OK) {
+      temp_c = DHT.getCelsius();
+      humidity = DHT.getHumidity();
+      Serial.printf("Humidity: %.0f%%\n", DHT.getHumidity());
+      Serial.printf("Temp: %.0fC\n", DHT.getCelsius());
+      if (LED_state) output_servo.write(90);
+      else output_servo.write(0);
+    }
+
+    LED_state = !LED_state;
     digitalWrite(HEARTBEAT_LED, LED_state);
-    temp_c = DHT.getCelsius();
-    humidity = DHT.getHumidity();
-    Serial.printf("Humidity: %.0f%%\n", DHT.getHumidity());
-    Serial.printf("Temp: %.0fC\n", DHT.getCelsius());
 
     poll_time += POLL_RATE;
   }
