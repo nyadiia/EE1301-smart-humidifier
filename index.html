@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+<head>
+  <title>
+    Winter's Thermostat Control Page(tm)
+  </title>
+</head>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js" type="text/javascript"
+  charset="utf-8"></script>
+
+<html>
+
+<body>
+  <h1>
+    Nadia's smart <b>thermostat</b>
+  </h1>
+
+  <script type="text/javascript">
+    function start(objButton) {
+      var deviceID = "270045000a47313037363132";
+      var accessToken = "2cc5a5c9b38152b5478a20c255c7781f9033d2fe";
+      var baseURL = "https://api.particle.io/v1/devices/"
+      var varName = "cV_temp"; // your cloud variable name goes here
+
+
+      requestURL = baseURL + deviceID + "/" + varName + "/?access_token=" + accessToken;
+      $.getJSON(requestURL, function (json) {
+        document.getElementById("current_temp").innerHTML = json.result;
+      });
+
+      var varName = "cV_humidity";  // this is another cloud variable name
+      requestURL = baseURL + deviceID + "/" + varName + "/?access_token=" + accessToken;
+      $.getJSON(requestURL, function (json) {
+        document.getElementById("current_humidity").innerHTML = json.result;
+      });
+    }
+    start();
+  </script>
+
+  Current Temperature: <span id="current_temp"></span>&deg; C<br>
+  Current Humidity: <span id="current_humidity"></span>&percnt;<br>
+  <br>
+  <button id="connectbutton" onclick="start()">Refresh Data</button>
+
+</body>
+
+</html>

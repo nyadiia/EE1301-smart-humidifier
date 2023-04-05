@@ -1,3 +1,9 @@
+/******************************************************/
+//       THIS IS A GENERATED FILE - DO NOT EDIT       //
+/******************************************************/
+
+#include "Particle.h"
+#line 1 "/home/nyadiia/Documents/school/EE1301/EE1301-smart-humidifier/src/EE1301-smart-humidifier.ino"
 /*
  * Project EE1301-smart-humidifier
  * Description: Smart humidifier that automatically adjust to fit the desired level.
@@ -7,35 +13,31 @@
 
 #include "PietteTech_DHT.h"
 
-// doing preprocessor for constants like this saves just a little bit of memory
-// because it substitutes the values in at compile time instead of referencing a variable
-// in memory
-#define SENSOR_PIN D1
-#define HEARTBEAT_LED D7
-#define DHT_TYPE DHT11
-#define POLL_RATE 500
-
+void setup();
+void loop();
+#line 10 "/home/nyadiia/Documents/school/EE1301/EE1301-smart-humidifier/src/EE1301-smart-humidifier.ino"
+const int SENSOR_PIN = D0;
+const int HEARTBEAT_LED = D7;
+const int DHT_TYPE = DHT11;
 double temp_c;
 double humidity;
-unsigned long int poll_time;
-bool LED_state = FALSE;
+PietteTech_DHT DHT(SENSOR_PIN, DHT11);
 
-PietteTech_DHT DHT(SENSOR_PIN, DHT_TYPE);
 
 // setup() runs once, when the device is first turned on.
 void setup() {
   // Put initialization like pinMode and begin functions here.
+  // pinMode(SENSOR_PIN, INPUT);
   pinMode(HEARTBEAT_LED, OUTPUT);
   Serial.begin(9600);
   DHT.begin();
   Particle.variable("cV_temp", temp_c);
   Particle.variable("cV_humidity", humidity);
-  poll_time = millis() + POLL_RATE;
 }
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
-  unsigned long int current_time = millis();
+
   //? this code is from the example and is helpful for error checking
   int result = DHT.acquireAndWait(1000); // wait up to 1 sec (default indefinitely)
 
@@ -69,14 +71,14 @@ void loop() {
     break;
   }
 
-  if (current_time > poll_time) {
-    LED_state = !LED_state; 
-    digitalWrite(HEARTBEAT_LED, LED_state);
-    temp_c = DHT.getCelsius();
-    humidity = DHT.getHumidity();
-    Serial.printf("Humidity: %.0f%%\n", DHT.getHumidity());
-    Serial.printf("Temp: %.0fC\n", DHT.getCelsius());
+  temp_c = DHT.getCelsius();
+  humidity = DHT.getHumidity();
+  Serial.printf("Humidity: %f %\n", DHT.getHumidity());
+  Serial.printf("Temp: %fC\n", DHT.getCelsius());
 
-    poll_time += POLL_RATE;
-  }
+  //! blocking code for now so it doesn't poll the sensor too much debugging that's readable
+  digitalWrite(HEARTBEAT_LED, HIGH);
+  delay(250);
+  digitalWrite(HEARTBEAT_LED, LOW);
+  delay(250);
 }
