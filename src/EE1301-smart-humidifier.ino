@@ -6,21 +6,34 @@
  */
 
 #include "PietteTech_DHT.h"
-
+#include "pid.h"
 // doing preprocessor for constants like this saves just a little bit of memory
 // because it substitutes the values in at compile time instead of referencing a variable
 // in memory
-#define SENSOR_PIN D1
+#define SENSOR_PIN D2
 #define HEARTBEAT_LED D7
+#define SERVO_PIN D1
 #define DHT_TYPE DHT11
 #define POLL_RATE 500
 
-double temp_c;
-double humidity;
+PietteTech_DHT DHT(SENSOR_PIN, DHT_TYPE);
+
 unsigned long int poll_time;
 bool LED_state = FALSE;
 
-PietteTech_DHT DHT(SENSOR_PIN, DHT_TYPE);
+double temp_c;
+double humidity;
+double desired_humidity;
+
+Servo output_servo;
+double servo_pos;
+
+double* Setpoint = &desired_humidity;
+double* Input = &humidity;
+// point to servo later
+double* Output;
+//Specify the links and initial tuning parameters
+PID myPID(Input, Output, Setpoint, 2, 5, 1, PID::DIRECT);
 
 // setup() runs once, when the device is first turned on.
 void setup() {
@@ -28,8 +41,10 @@ void setup() {
   pinMode(HEARTBEAT_LED, OUTPUT);
   Serial.begin(9600);
   DHT.begin();
+  output_servo.attach(SERVO_PIN);
   Particle.variable("cV_temp", temp_c);
   Particle.variable("cV_humidity", humidity);
+  Particle.function("cF_humidity_setpoint", humidity_setpoint_from_string);
   poll_time = millis() + POLL_RATE;
 }
 
@@ -69,14 +84,22 @@ void loop() {
     break;
   }
 
+  // toggles LED and reports temp and humidity
   if (current_time > poll_time) {
     LED_state = !LED_state; 
     digitalWrite(HEARTBEAT_LED, LED_state);
-    temp_c = DHT.getCelsius();
-    humidity = DHT.getHumidity();
-    Serial.printf("Humidity: %.0f%%\n", DHT.getHumidity());
-    Serial.printf("Temp: %.0fC\n", DHT.getCelsius());
-
+    if (result == DHTLIB_OK) {
+      temp_c = DHT.getCelsius();
+      humidity = DHT.getHumidity();
+      Serial.printf("Humidity: %.0f%%\n", DHT.getHumidity());
+      Serial.printf("Temp: %.0fC\n", DHT.getCelsius());
+    }
+    
     poll_time += POLL_RATE;
   }
+}
+
+int humidity_setpoint_from_string(String input_string) {
+  desired_humidity = input_string.toFloat();
+  return 1;
 }
