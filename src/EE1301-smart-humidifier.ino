@@ -16,8 +16,10 @@
 #define DHT_TYPE DHT11
 #define POLL_RATE 1000  // read every 1 sec
 #define TOLERANCE 5     // tolerance is defined from the sensor accuracy
+#define __DEBUG
 
 double temp_c, humidity, desired_humidity;
+
 unsigned long int poll_time;
 bool LED_state = FALSE;
 
@@ -30,7 +32,7 @@ double* Input = &humidity;
 // point to servo later
 double* Output = &servo_pos;
 //Specify the links and initial tuning parameters
-PID myPID(Input, Output, Setpoint, 2, 5, 1, PID::DIRECT);
+PID pid_controller(Input, Output, Setpoint, 8, 0.5, 0, PID::DIRECT);
 PietteTech_DHT DHT(SENSOR_PIN, DHT_TYPE);
 
 // setup() runs once, when the device is first turned on.
@@ -41,6 +43,7 @@ void setup() {
   Serial.begin(9600);
   DHT.begin();
   output_servo.attach(SERVO_PIN);
+  pid_controller.SetMode(PID::AUTOMATIC);
   // cloud variables for the webpage
   Particle.variable("cV_temp", temp_c);
   Particle.variable("cV_humidity", humidity);
@@ -62,17 +65,16 @@ void loop() {
     if (result == DHTLIB_OK) {
       temp_c = DHT.getCelsius();
       humidity = DHT.getHumidity();
-      Serial.printf("Humidity: %.0f%%\n", DHT.getHumidity());
-      Serial.printf("Temp: %.0fC\n", DHT.getCelsius());
-      // this is pwm like control. if the current humidity is above the desired minus the
-      // tolerance that was speified, turn off the humidifier
-      if (humidity >= desired_humidity-TOLERANCE) {
-        output_servo.write(0);
-      }
-      // otherwise turn it on
-      else {
-        output_servo.write(270);
-      }
+      pid_controller.Compute();
+      output_servo.write(5*servo_pos);
+
+      #ifdef __DEBUG
+      desired_humidity = 40;
+      Serial.printf("Temp: %.0fC\n", temp_c);
+      Serial.printf("Humidity: %.0f%%\n", humidity);
+      Serial.printf("Setpoint: %.0f%%\n", desired_humidity);
+      Serial.printf("Output: %0.2f\n\n", 5*servo_pos);
+      #endif      
     }
 
     // toggle LED
@@ -84,9 +86,14 @@ void loop() {
   }
 }
 
+int humidity_setpoint_from_string(String input_string) {
+  desired_humidity = input_string.toFloat();
+  return 1;
+}
+
 // this code is from the example and is helpful for error checking
 void acquire_data(int &result) {
-  result = DHT.acquire();
+  result = DHT.acquireAndWait();
 
   switch (result) {
   case DHTLIB_OK:
@@ -116,9 +123,4 @@ void acquire_data(int &result) {
     Serial.println("Unknown error");
     break;
   }
-}
-
-int humidity_setpoint_from_string(String input_string) {
-  desired_humidity = input_string.toFloat();
-  return 1;
 }
