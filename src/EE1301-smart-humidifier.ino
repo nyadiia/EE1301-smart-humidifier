@@ -6,10 +6,10 @@
  */
 
 #include "PietteTech_DHT.h"
-
- // doing preprocessor for constants like this saves just a little bit of memory
- // because it substitutes the values in at compile time instead of referencing a variable
- // in memory
+#include "pid.h"
+// doing preprocessor for constants like this saves just a little bit of memory
+// because it substitutes the values in at compile time instead of referencing a variable
+// in memory
 #define SENSOR_PIN D2
 #define HEARTBEAT_LED D7
 #define SERVO_PIN D1
@@ -21,7 +21,16 @@ double temp_c, humidity, desired_humidity;
 unsigned long int poll_time;
 bool LED_state = FALSE;
 
+
 Servo output_servo;
+double servo_pos;
+
+double* Setpoint = &desired_humidity;
+double* Input = &humidity;
+// point to servo later
+double* Output = &servo_pos;
+//Specify the links and initial tuning parameters
+PID myPID(Input, Output, Setpoint, 2, 5, 1, PID::DIRECT);
 PietteTech_DHT DHT(SENSOR_PIN, DHT_TYPE);
 
 // setup() runs once, when the device is first turned on.
@@ -35,6 +44,7 @@ void setup() {
   // cloud variables for the webpage
   Particle.variable("cV_temp", temp_c);
   Particle.variable("cV_humidity", humidity);
+  Particle.function("cF_humidity_setpoint", humidity_setpoint_from_string);
   Particle.variable("cV_humidity_setpoint", desired_humidity);
   // non-blocking method but doesn't read the sensor too much
   poll_time = millis() + POLL_RATE;
@@ -106,4 +116,9 @@ void acquire_data(int &result) {
     Serial.println("Unknown error");
     break;
   }
+}
+
+int humidity_setpoint_from_string(String input_string) {
+  desired_humidity = input_string.toFloat();
+  return 1;
 }
