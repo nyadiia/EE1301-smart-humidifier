@@ -33,15 +33,28 @@
       $.getJSON(requestURL, function (json) {
         document.getElementById("current_humidity").innerHTML = json.result;
       });
+
+      var varName = "cV_humidity_setpoint";  // this is another cloud variable name
+      requestURL = baseURL + deviceID + "/" + varName + "/?access_token=" + accessToken;
+      $.getJSON(requestURL, function (json) {
+        document.getElementById("desired_humidity").innerHTML = json.result;
+      });
     }
     start();
   </script>
 
   Current Temperature: <span id="current_temp"></span>&deg; C<br>
   Current Humidity: <span id="current_humidity"></span>&percnt;<br>
+  Desired Humidity: <span id="desired_humidity"></span>&percnt;<br>
   <br>
   <button id="connectbutton" onclick="start()">Refresh Data</button>
-
+  <br>
+  <form
+    action="https://api.particle.io/v1/devices/270045000a47313037363132/cF_humidity_setpoint?access_token=2cc5a5c9b38152b5478a20c255c7781f9033d2fe"
+    method="POST">
+    <input type="text" name="args"><br>
+    <input type="submit" value="Set Humidity">
+  </form>
 </body>
 
 </html>

@@ -14,10 +14,10 @@
 #define HEARTBEAT_LED D7
 #define SERVO_PIN D1
 #define DHT_TYPE DHT11
-#define POLL_RATE 500
+#define POLL_RATE 1000  // read every 1 sec
+#define TOLERANCE 5     // tolerance is defined from the sensor accuracy
 
-double temp_c;
-double humidity;
+double temp_c, humidity, desired_humidity;
 unsigned long int poll_time;
 bool LED_state = FALSE;
 
@@ -32,21 +32,54 @@ void setup() {
   Serial.begin(9600);
   DHT.begin();
   output_servo.attach(SERVO_PIN);
+  // cloud variables for the webpage
   Particle.variable("cV_temp", temp_c);
   Particle.variable("cV_humidity", humidity);
+  Particle.variable("cV_humidity_setpoint", desired_humidity);
+  // non-blocking method but doesn't read the sensor too much
   poll_time = millis() + POLL_RATE;
 }
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
   unsigned long int current_time = millis();
-  //? this code is from the example and is helpful for error checking
-  int result = DHT.acquireAndWait(1500); // wait up to 1.5 sec
-  delay(POLL_RATE);
+
+  // if the current time is greater than the poll delay, run the code
+  if (current_time > poll_time) {
+    int result;
+    acquire_data(result);
+    // if we're actually able to read the sensor
+    if (result == DHTLIB_OK) {
+      temp_c = DHT.getCelsius();
+      humidity = DHT.getHumidity();
+      Serial.printf("Humidity: %.0f%%\n", DHT.getHumidity());
+      Serial.printf("Temp: %.0fC\n", DHT.getCelsius());
+      // this is pwm like control. if the current humidity is above the desired minus the
+      // tolerance that was speified, turn off the humidifier
+      if (humidity >= desired_humidity-TOLERANCE) {
+        output_servo.write(0);
+      }
+      // otherwise turn it on
+      else {
+        output_servo.write(270);
+      }
+    }
+
+    // toggle LED
+    LED_state = !LED_state;
+    digitalWrite(HEARTBEAT_LED, LED_state);
+
+    // add poll rate (ms) to poll time to reset the whole loop
+    poll_time += POLL_RATE;
+  }
+}
+
+// this code is from the example and is helpful for error checking
+void acquire_data(int &result) {
+  result = DHT.acquire();
 
   switch (result) {
   case DHTLIB_OK:
-    Serial.println("OK");
     break;
   case DHTLIB_ERROR_CHECKSUM:
     Serial.println("Error\n\r\tChecksum error");
@@ -72,21 +105,5 @@ void loop() {
   default:
     Serial.println("Unknown error");
     break;
-  }
-
-  if (current_time > poll_time) {
-    if (result == DHTLIB_OK) {
-      temp_c = DHT.getCelsius();
-      humidity = DHT.getHumidity();
-      Serial.printf("Humidity: %.0f%%\n", DHT.getHumidity());
-      Serial.printf("Temp: %.0fC\n", DHT.getCelsius());
-      if (LED_state) output_servo.write(90);
-      else output_servo.write(0);
-    }
-
-    LED_state = !LED_state;
-    digitalWrite(HEARTBEAT_LED, LED_state);
-
-    poll_time += POLL_RATE;
   }
 }
