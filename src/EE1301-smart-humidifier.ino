@@ -14,12 +14,13 @@
 #define HEARTBEAT_LED D7
 #define SERVO_PIN D1
 #define DHT_TYPE DHT11
-#define POLL_RATE 1000  // read every 1 sec
+#define POLL_RATE 2000  // read every 2 sec
 #define TOLERANCE 5     // tolerance is defined from the sensor accuracy
 
 double temp_c, humidity, desired_humidity;
 unsigned long int poll_time;
 bool LED_state = FALSE;
+bool servo_state = FALSE;
 
 Servo output_servo;
 PietteTech_DHT DHT(SENSOR_PIN, DHT_TYPE);
@@ -54,14 +55,16 @@ void loop() {
       humidity = DHT.getHumidity();
       Serial.printf("Humidity: %.0f%%\n", DHT.getHumidity());
       Serial.printf("Temp: %.0fC\n", DHT.getCelsius());
+      desired_humidity = 40;
       // this is pwm like control. if the current humidity is above the desired minus the
       // tolerance that was speified, turn off the humidifier
       if (humidity >= desired_humidity-TOLERANCE) {
-        output_servo.write(0);
+        // turn it off
+        turn_servo(FALSE);
       }
       // otherwise turn it on
       else {
-        output_servo.write(270);
+        turn_servo(TRUE);
       }
     }
 
@@ -74,9 +77,30 @@ void loop() {
   }
 }
 
+void turn_servo(bool state) {
+  if (state && servo_state)
+    // if it's already on, don't do anything
+    output_servo.write(90);
+  else if (state) {
+    // if it's on, set it to 180 degrees with continuous rotation servo
+    // this turns it on
+    output_servo.write(180);
+
+    // delay for 1 second to let the servo turn the dial fully
+    delay(1000);
+    output_servo.write(90);
+    servo_state = state;
+  }
+  else
+    // if it's off, set it to 90 degrees with continuous rotation servo
+    // this stops it
+    output_servo.write(90);
+    servo_state = state;
+}
+
 // this code is from the example and is helpful for error checking
 void acquire_data(int &result) {
-  result = DHT.acquire();
+  result = DHT.acquireAndWait(2000);
 
   switch (result) {
   case DHTLIB_OK:

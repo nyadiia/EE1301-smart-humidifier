@@ -33,3 +33,4 @@
 .vscode/*
 .gitignore
 .vscode/settings.json
+node_modules
