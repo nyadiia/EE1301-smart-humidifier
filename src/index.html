@@ -54,8 +54,10 @@
   <form
     action="https://api.particle.io/v1/devices/270045000a47313037363132/cF_humidity_setpoint?access_token=2cc5a5c9b38152b5478a20c255c7781f9033d2fe"
     method="POST">
-    <input type="text" name="args"><br>
-    <input type="submit" value="Set Humidity">
+    <div class="text-black">
+    <input type="text" placeholder="Enter desired humidity" name="args" class=" text-black placeholder:text-slate-400"><br>
+    </div>
+    <input type="submit" class="border-zinc-600 bg-zinc-800 p-1 hover:border-rose-500 hover:bg-zinc-700 active:border-rose-800 active:bg-zinc-800 border-2 rounded-md" value="Set Humidity">
   </form>
 </body>
 
