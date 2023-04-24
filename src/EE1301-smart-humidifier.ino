@@ -17,7 +17,8 @@
 #define POLL_RATE 2000  // read every 2 sec
 #define TOLERANCE 5     // tolerance is defined from the sensor accuracy
 
-double temp_c, humidity, desired_humidity;
+double temp_c, humidity;
+double desired_humidity = 40.0;
 unsigned long int poll_time;
 bool LED_state = FALSE;
 bool servo_state = FALSE;
@@ -37,6 +38,7 @@ void setup() {
   Particle.variable("cV_temp", temp_c);
   Particle.variable("cV_humidity", humidity);
   Particle.variable("cV_humidity_setpoint", desired_humidity);
+  Particle.function("cF_humidity_setpoint", set_humidity);
   // non-blocking method but doesn't read the sensor too much
   poll_time = millis() + POLL_RATE;
 }
@@ -55,7 +57,6 @@ void loop() {
       humidity = DHT.getHumidity();
       Serial.printf("Humidity: %.0f%%\n", DHT.getHumidity());
       Serial.printf("Temp: %.0fC\n", DHT.getCelsius());
-      desired_humidity = 40;
       // this is pwm like control. if the current humidity is above the desired minus the
       // tolerance that was speified, turn off the humidifier
       if (humidity >= desired_humidity-TOLERANCE) {
@@ -96,6 +97,12 @@ void turn_servo(bool state) {
     // this stops it
     output_servo.write(90);
     servo_state = state;
+}
+
+// this function is called when the webpage is updated
+int set_humidity(String input) {
+  desired_humidity = input.toFloat();
+  return 1;
 }
 
 // this code is from the example and is helpful for error checking
