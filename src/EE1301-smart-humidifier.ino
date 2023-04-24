@@ -79,22 +79,27 @@ void loop() {
 }
 
 void turn_servo(bool state) {
-  if (state && servo_state)
-    // if it's already on, don't do anything
+  // this is the delay for the servo to turn the dial
+  // RPM @ 4.8V: 100
+  // RPS @ 4.8V: 1.67
+  // 1.5 s is around the full dial turn, can be adjusted later
+  const int servo_delay = 1500;
+  if (state && servo_state || !state && !servo_state)
+    // if it's already on/off, don't do anything
     output_servo.write(90);
   else if (state) {
     // if it's on, set it to 180 degrees with continuous rotation servo
-    // this turns it on
+    // this turns it on fully
     output_servo.write(180);
 
-    // delay for 1 second to let the servo turn the dial fully
-    delay(1000);
+    // delay for 1.5 seconds to let the servo turn the dial fully
+    delay(1500);
     output_servo.write(90);
     servo_state = state;
   }
-  else
-    // if it's off, set it to 90 degrees with continuous rotation servo
-    // this stops it
+  else if (!state && servo_state)
+    output_servo.write(0);
+    delay(1500);
     output_servo.write(90);
     servo_state = state;
 }
